@@ -30,5 +30,46 @@ Once the required permissions are added, click the <i>Grant admin</i> consent bu
  - Client Secret
  - Client ID aka application id (GUID)
  - Directory ID aka tenant id (GUID)
+ 
+<hr>
+ 
+## Installation
+ 
+### Windows
+ 
+1) As administrator, enter the following command in Powershell or download the zip file [here](https://github.com/themarcusaurelius/O365beat/archive/master.zip).
 
+```
+Start-BitsTransfer -Source 'https://github.com/themarcusaurelius/O365beat/archive/master.zip' -Destination 'C:\Users\Administrator\Downloads\Heartbeat.zip'
+```
+
+2) Unzip the package and extract the contents to the `C:/` drive.
+
+3) Back in Powershell, CD into the extracted folder and run the following script:
+
+```
+.\installO365beat.ps1
+```
+
+4) When prompted, enter your credentials below as well as the ```URL``` that you would like to monitor and click OK.
+
+```css
+Kibana URL: _PLACEHOLDER_KIBANA_URL_
+Username: _PLACEHOLDER_USERNAME_
+Password: _PLACEHOLDER_PASSWORD_
+Elasticsearch API Endpoint: _PLACEHOLDER_API_ENDPOINT_
+```
+
+5) When prompted again, enter your O365 Credentials. 
+
+```
+ - Tenant Domain
+ - Client Secret
+ - Client ID aka application id (GUID)
+ - Directory ID aka tenant id (GUID)
+```
+
+This will install and run O365beat.
+
+**Data should now be shipping to your Vizion Elastic app. Check the ```Discover``` tab in Kibana for the incoming logs**
 
