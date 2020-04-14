@@ -1,6 +1,6 @@
 # Monitor activity in your O365 Account.
 
-This is a custom "beat" for Office 365 logs received via one of the Office 365 API endpoints. It currently supports user, admin, system, and policy actions and events from Office 365 and Azure AD activity logs exposed by the Office 365 Management Activity API.
+This is a custom "beat" for Office 365 logs received via one of the Office 365 API endpoints. It currently supports <b>user, admin, system, and policy actions and events</b> from Office 365 and Azure AD activity logs exposed by the Office 365 Management Activity API.
 
 ## O365 Initial Setup
 
