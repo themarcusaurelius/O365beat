@@ -40,7 +40,7 @@ Once the required permissions are added, click the <i>Grant admin</i> consent bu
 1) As administrator, enter the following command in Powershell or download the zip file [here](https://github.com/themarcusaurelius/O365beat/archive/master.zip).
 
 ```
-Start-BitsTransfer -Source 'https://github.com/themarcusaurelius/O365beat/archive/master.zip' -Destination 'C:\Users\Administrator\Downloads\Heartbeat.zip'
+Start-BitsTransfer -Source 'https://github.com/themarcusaurelius/O365beat/archive/master.zip' -Destination 'C:\Users\Administrator\Downloads\O365beat.zip'
 ```
 
 2) Unzip the package and extract the contents to the `C:/` drive.
