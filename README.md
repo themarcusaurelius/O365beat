@@ -22,7 +22,7 @@ Finally, you need to add permissions in the API permissions section and grant it
 
 ![Imgur](https://imgur.com/qjOaUpL.png)
 
-Once the required permissions are added, click the <i>Grant admin</i> consent button. Note that it can take a while for the required permissions to be in effect, so it’s possible that you observe some permission errors when running Filebeat right away.
+Once the required permissions are added, click the <i>Grant admin</i> consent button. Note that it can take a while for the required permissions to be in effect, so it’s possible that you observe some permission errors when running O365beat right away.
 
 <b>*** Required Credentials You Must Have From O365 To Use This Beat ***</b>
 
