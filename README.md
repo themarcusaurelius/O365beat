@@ -4,7 +4,7 @@ This is a custom "beat" for Office 365 logs received via one of the Office 365 A
 
 ## Setup
 
-To use this fileset you need to enable Audit Log Search and register an application in Azure AD.
+To use this fileset you need to [enable Audit Log Search](https://docs.microsoft.com/en-us/microsoft-365/compliance/turn-audit-log-search-on-or-off?view=o365-worldwide#turn-on-audit-log-search). and [register an application in Azure AD.](https://docs.microsoft.com/en-us/office/office-365-management-api/get-started-with-office-365-management-apis#register-your-application-in-azure-ad)
 
 ![Imgur](https://imgur.com/cPOrFq2.png)
 
