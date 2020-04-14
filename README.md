@@ -73,3 +73,5 @@ This will install and run O365beat.
 
 **Data should now be shipping to your Vizion Elastic app. Check the ```Discover``` tab in Kibana for the incoming logs**
 
+<b>Note that it can take a while for the required permissions to be in effect, so it’s possible that you observe some permission errors when running O365beat right away.</b>
+
