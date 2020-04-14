@@ -3,20 +3,34 @@
 ############################# O365beat ######################################
 
 o365beat:
+  ## period Defines how often API is polled for new content blobs
+  ## 5 min default, as new content (probably) isn't published too often
+  # period: 5m
+
   # period Defines how often API is polled for new content blobs
   # 5 min default, as new content (probably) isn't published too often
   # period: 5m
 
-  # pull secrets from environment (e.g, > set -a; . ./ENV_FILE; set +a;)
-  # or hard-coded here:
+  # api_timeout Defines how long the beat will wait for responses from the API
+  # 30 second default; extend this for busy tenants
+  # api_timeout: 30s
+
+  # content_max_age Defines the oldest content the beat will request
+  # 7 day default, which is the max retained according to Microsoft
+  # reduce this for busy tenants to minimize risk of timeouts
+  # content_max_age: 168h
+
+  ## pull secrets from environment (e.g, > set -a; . ./ENV_FILE; set +a;)
+  ## or a key store (https://www.elastic.co/guide/en/beats/filebeat/current/keystore.html)
+  ## or hard-code here:
   tenant_domain: ${O365BEAT_TENANT_DOMAIN:}
   client_secret: ${O365BEAT_CLIENT_SECRET:}
   client_id:     ${O365BEAT_CLIENT_ID:}     # aka application id (GUID)
   directory_id:  ${O365BEAT_DIRECTORY_ID:}  # aka tenant id (GUID)
-  registry_file_path: ${O365BEAT_REGISTRY_PATH:./o365beat-registry.json}
+  registry_file_path: ${O365BEAT_REGISTRY_PATH:./o365beat.state}
 
-  # the following content types will be pulled from the API
-  # for available types, see https://docs.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference#working-with-the-office-365-management-activity-api
+  ## the following content types will be pulled from the API
+  ## for available types, see https://docs.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference#working-with-the-office-365-management-activity-api
   content_types:
     - Audit.AzureActiveDirectory
     - Audit.Exchange
@@ -24,29 +38,91 @@ o365beat:
     - Audit.General
     # - DLP.All # TODO: figure out what to do with this, it's not like the rest
 
-# by default, map Office 365 Activities API event fields to ECS fields
-# API "Common" fields: Id, RecordType, CreationTime, Operation, OrganizationId,
-#                      UserType, UserKey, Workload, ResultStatus, ObjectId,
-#                      UserId, ClientIP, Scope
+  ## login_url defines the endpoint which the beat uses to authenticate to the API (with https://, no trailing slash)
+  ## this setting enables use of this beat with GCC High Office 365 plans and other custom situations
+  ## (https://docs.microsoft.com/en-us/office365/enterprise/office-365-u-s-government-gcc-high-endpoints)
+  ## **only change when using a non-standard deployment of Office 365**
+  # login_url: 'https://login.microsoftonline.com'
+
+  ## resource_url defines the root of the API endpoints themselves (with https://, no trailing slash)
+  ## this setting enables use of this beat with GCC High Office 365 plans and other custom situations
+  ## (https://docs.microsoft.com/en-us/office365/enterprise/office-365-u-s-government-gcc-high-endpoints)
+  ## **only change when using a non-standard deployment of Office 365**
+  # resource_url: 'https://manage.office.com'
+
+## By default, map Office 365 Activities API event fields to ECS fields
+## API "Common" fields: Id, RecordType, CreationTime, Operation, OrganizationId,
+##                      UserType, UserKey, Workload, ResultStatus, ObjectId,
+##                      UserId, ClientIP, Scope
 processors:
+  - dissect:
+      field: ClientIP
+      tokenizer: '[%{clientip}]:%{clientport}'
+      when:
+        contains:
+          ClientIP: '['
+  - dissect:
+      field: ClientIP
+      tokenizer: '%{clientip}:%{clientport}'
+      when:
+        contains:
+          ClientIP: ':'
+        not:
+          contains:
+            ClientIP: '['
   - convert:
       fields:
-        - {from: "Id", to: "event.id", type: string}                # ecs core
-        - {from: "RecordType", to: "event.code", type: string}      # ecs extended
-        # - {from: "CreationTime", to: "", type: ""}                # @timestamp
-        - {from: "Operation", to: "event.action", type: string}     # ecs core
-        - {from: "OrganizationId", to: "cloud.account.id", type: string} # ecs extended
-        # - {from: "UserType", to: "", type: ""}                    # no ecs mapping
-        # - {from: "UserKey", to: "", type: ""}                     # no ecs mapping
-        - {from: "Workload", to: "event.category", type: string}    # ecs core
-        - {from: "ResultStatus", to: "event.outcome", type: string} # ecs extended
-        # - {from: "ObjectId", to: "", type: ""}                    # no ecs mapping
-        - {from: "UserId", to: "user.id", type: string}             # ecs core
-        - {from: "ClientIP", to: "client.ip", type: ip}             # ecs core
-        # - {from: "Scope", to: "", type: ""}                       # no ecs mapping
+        - {from: Id, to: 'event.id', type: string}                # ecs core
+        - {from: RecordType, to: 'event.code', type: string}      # ecs extended
+        - {from: Operation, to: 'event.action', type: string}     # ecs core
+        - {from: OrganizationId, to: 'cloud.account.id', type: string} # ecs extended
+        # - {from: UserType, to: '', type: ''}                    # no ecs mapping
+        # - {from: UserKey, to: '', type: ''}                     # no ecs mapping
+        - {from: Workload, to: 'event.category', type: string}    # ecs core
+        - {from: ResultStatus, to: 'event.outcome', type: string} # ecs extended
+        # - {from: ObjectId, to: '', type: ''}                    # no ecs mapping
+        - {from: UserId, to: 'user.id', type: string}             # ecs core
+        - {from: ClientIP, to: 'client.ip', type: ip}             # ecs core
+        - {from: 'dissect.clientip', to: 'client.ip', type: ip}   # ecs core
+        # - {from: "Scope", to: "", type: ""}                     # no ecs mapping
+        # the following fields use the challenging array-of-name-value-pairs format
+        # converting them to strings fixes issues in elastic, eases non-script parsing
+        # easier to rehydrate into arrays from strings than vice versa:
+        - {from: Parameters, type: string}                        # no ecs mapping
+        - {from: ExtendedProperties, type: string}                # no ecs mapping
+        - {from: ModifiedProperties, type: string}                # no ecs mapping
       ignore_missing: true
       fail_on_error: false
       mode: copy # default
+  # - script:
+  #     when:
+  #       or:
+  #         - has_fields: ['Parameters']
+  #         - has_fields: ['ExtendedProperties']
+  #     lang: javascript
+  #     id: name_value_array_parser
+  #     source: >
+  #       function process(event){
+  #         var processed = event.Get('processed') || {};
+  #         var parameters = event.Get('Parameters')
+  #         if(!!parameters && !!parameters.length){
+  #           processed.Parameters = processed.Parameters || {};
+  #           for(var i = 0; i < parameters.length; i++){
+  #             var p = parameters[i];
+  #             if(p.Name) processed.Parameters[p.Name] = p.Value;
+  #           }
+  #         }
+  #         var extendedProperties = event.Get('ExtendedProperties')
+  #         if(!!extendedProperties && !!extendedProperties.length){
+  #           processed.ExtendedProperties = processed.ExtendedProperties || {};
+  #           for(var i = 0; i < extendedProperties.length; i++){
+  #             var p = extendedProperties[i];
+  #             if(p.Name) processed.ExtendedProperties[p.Name] = p.Value;
+  #           }
+  #         }
+  #         event.Put('processed', processed);
+  #       }
+
 #================================ General ======================================
 
 # The name of the shipper that publishes the network data. It can be used to group
@@ -88,7 +164,7 @@ processors:
     #flush.min_events: 2048
 
     # Maximum duration after which events are available to the outputs,
-    # if the number of events stored in the queue is < min_flush_events.
+    # if the number of events stored in the queue is < `flush.min_events`.
     #flush.timeout: 1s
 
   # The spool queue will store events in a local spool file, before
@@ -266,6 +342,13 @@ processors:
 #    target: ""
 #    overwrite_keys: false
 #
+#processors:
+#- decompress_gzip_field:
+#    from: "field1"
+#    to: "field2"
+#    ignore_missing: false
+#    fail_on_error: true
+#
 # The following example copies the value of message to message_copied
 #
 #processors:
@@ -304,7 +387,7 @@ processors:
 
 #============================= Elastic Cloud ==================================
 
-# These settings simplify using o365beat with the Elastic Cloud (https://cloud.elastic.co/).
+# These settings simplify using O365beat with the Elastic Cloud (https://cloud.elastic.co/).
 
 # The cloud.id setting overwrites the `output.elasticsearch.hosts` and
 # `setup.kibana.host` options.
@@ -367,6 +450,11 @@ output.elasticsearch:
   # Proxy server URL
   #proxy_url: http://proxy:3128
 
+  # Whether to disable proxy settings for outgoing connections. If true, this
+  # takes precedence over both the proxy_url field and any environment settings
+  # (HTTP_PROXY, HTTPS_PROXY). The default is false.
+  #proxy_disable: false
+
   # The number of times a particular Elasticsearch index operation is attempted. If
   # the indexing operation doesn't succeed after this many retries, the events are
   # dropped. The default is 3.
@@ -424,7 +512,6 @@ output.elasticsearch:
   # Configure what types of renegotiation are supported. Valid options are
   # never, once, and freely. Default is never.
   #ssl.renegotiation: never
-
 
 #----------------------------- Logstash output ---------------------------------
 #output.logstash:
@@ -569,7 +656,7 @@ output.elasticsearch:
   #username: ''
   #password: ''
 
-  # Kafka version o365beat is assumed to run against. Defaults to the "1.0.0".
+  # Kafka version O365beat is assumed to run against. Defaults to the "1.0.0".
   #version: '1.0.0'
 
   # Configure JSON encoding
@@ -593,8 +680,8 @@ output.elasticsearch:
     # Refresh metadata interval. Defaults to every 10 minutes.
     #refresh_frequency: 10m
 
-    # Strategy for fetching the topics metadata from the broker. Default is true.
-    #full: true
+    # Strategy for fetching the topics metadata from the broker. Default is false.
+    #full: false
 
   # The number of concurrent load-balanced Kafka output workers.
   #worker: 1
@@ -609,6 +696,10 @@ output.elasticsearch:
   # The maximum number of events to bulk in a single Kafka request. The default
   # is 2048.
   #bulk_max_size: 2048
+
+  # Duration to wait before sending bulk Kafka request. 0 is no delay. The default
+  # is 0.
+  #bulk_flush_frequency: 0s
 
   # The number of seconds to wait for responses from the Kafka brokers before
   # timing out. The default is 30s.
@@ -822,7 +913,7 @@ output.elasticsearch:
   #filename: o365beat
 
   # Maximum size in kilobytes of each file. When this size is reached, and on
-  # every o365beat restart, the files are rotated. The default value is 10240
+  # every O365beat restart, the files are rotated. The default value is 10240
   # kB.
   #rotate_every_kb: 10000
 
@@ -833,7 +924,6 @@ output.elasticsearch:
 
   # Permissions to use for file creation. The default is 0600.
   #permissions: 0600
-
 
 #----------------------------- Console output ---------------------------------
 #output.console:
@@ -850,26 +940,26 @@ output.elasticsearch:
 
 #================================= Paths ======================================
 
-# The home path for the o365beat installation. This is the default base path
+# The home path for the O365beat installation. This is the default base path
 # for all other path settings and for miscellaneous files that come with the
 # distribution (for example, the sample dashboards).
 # If not set by a CLI flag or in the configuration file, the default for the
 # home path is the location of the binary.
 #path.home:
 
-# The configuration path for the o365beat installation. This is the default
+# The configuration path for the O365beat installation. This is the default
 # base path for configuration files, including the main YAML configuration file
 # and the Elasticsearch template file. If not set by a CLI flag or in the
 # configuration file, the default for the configuration path is the home path.
 #path.config: ${path.home}
 
-# The data path for the o365beat installation. This is the default base path
-# for all the files in which o365beat needs to store its data. If not set by a
+# The data path for the O365beat installation. This is the default base path
+# for all the files in which O365beat needs to store its data. If not set by a
 # CLI flag or in the configuration file, the default for the data path is a data
 # subdirectory inside the home path.
 #path.data: ${path.home}/data
 
-# The logs path for a o365beat installation. This is the default location for
+# The logs path for a O365beat installation. This is the default location for
 # the Beat's log files. If not set by a CLI flag or in the configuration file,
 # the default for the logs path is a logs subdirectory inside the home path.
 #path.logs: ${path.home}/logs
@@ -981,22 +1071,38 @@ setup.template.settings:
 
 #============================== Setup ILM =====================================
 
-# Configure Index Lifecycle Management Index Lifecycle Management creates a
-# write alias and adds additional settings to the template.
-# The elasticsearch.output.index setting will be replaced with the write alias
-# if ILM is enabled.
+# Configure index lifecycle management (ILM). These settings create a write
+# alias and add additional settings to the index template. When ILM is enabled,
+# output.elasticsearch.index is ignored, and the write alias is used to set the
+# index name.
 
-# Enabled ILM support. Valid values are true, false, and auto. The beat will
-# detect availabilty of Index Lifecycle Management in Elasticsearch and enable
-# or disable ILM support.
+# Enable ILM support. Valid values are true, false, and auto. When set to auto
+# (the default), the Beat uses index lifecycle management when it connects to a
+# cluster that supports ILM; otherwise, it creates daily indices.
 #setup.ilm.enabled: auto
 
-# Configure the ILM write alias name.
+# Set the prefix used in the index lifecycle write alias name. The default alias
+# name is 'o365beat-%{[agent.version]}'.
 #setup.ilm.rollover_alias: "o365beat"
 
-# Configure rollover index pattern.
+# Set the rollover index pattern. The default is "%{now/d}-000001".
 #setup.ilm.pattern: "{now/d}-000001"
 
+# Set the lifecycle policy name. The default policy name is
+# 'o365beat-%{[agent.version]}'.
+#setup.ilm.policy_name: "mypolicy"
+
+# The path to a JSON file that contains a lifecycle policy configuration. Used
+# to load your own lifecycle policy.
+#setup.ilm.policy_file:
+
+# Disable the check for an existing lifecycle policy. The default is false. If
+# you disable this check, set setup.ilm.overwrite: true so the lifecycle policy
+# can be installed.
+#setup.ilm.check_exists: false
+
+# Overwrite the lifecycle policy at startup. The default is false.
+#setup.ilm.overwrite: false
 
 #============================== Kibana =====================================
 
@@ -1065,13 +1171,16 @@ setup.kibana:
 # Multiple selectors can be chained.
 #logging.selectors: [ ]
 
+# Send all logging output to stderr. The default is false.
+#logging.to_stderr: false
+
 # Send all logging output to syslog. The default is false.
 #logging.to_syslog: false
 
 # Send all logging output to Windows Event Logs. The default is false.
 #logging.to_eventlog: false
 
-# If enabled, o365beat periodically logs its internal metrics that have changed
+# If enabled, O365beat periodically logs its internal metrics that have changed
 # in the last period. For each metric that changed, the delta from the value at
 # the beginning of the period is logged. Also, the total values for
 # all non-zero internal metrics are logged on shutdown. The default is true.
@@ -1117,13 +1226,18 @@ logging.files:
 #logging.json: false
 
 
-#============================== Xpack Monitoring ===============================
-# o365beat can export internal metrics to a central Elasticsearch monitoring
+#============================== X-Pack Monitoring ===============================
+# O365beat can export internal metrics to a central Elasticsearch monitoring
 # cluster.  This requires xpack monitoring to be enabled in Elasticsearch.  The
 # reporting is disabled by default.
 
 # Set to true to enable the monitoring reporter.
 #monitoring.enabled: false
+
+# Sets the UUID of the Elasticsearch cluster under which monitoring data for this
+# O365beat instance will appear in the Stack Monitoring UI. If output.elasticsearch
+# is enabled, the UUID is derived from the Elasticsearch cluster referenced by output.elasticsearch.
+#monitoring.cluster_uuid:
 
 # Uncomment to send the metrics to Elasticsearch. Most settings from the
 # Elasticsearch output are accepted here as well.
@@ -1231,11 +1345,20 @@ logging.files:
 # Defines if the HTTP endpoint is enabled.
 #http.enabled: false
 
-# The HTTP endpoint will bind to this hostname or IP address. It is recommended to use only localhost.
+# The HTTP endpoint will bind to this hostname, IP address, unix socket or named pipe.
+# When using IP addresses, it is recommended to only use localhost.
 #http.host: localhost
 
 # Port on which the HTTP endpoint will bind. Default is 5066.
 #http.port: 5066
+
+# Define which user should be owning the named pipe.
+#http.named_pipe.user:
+
+# Define which the permissions that should be applied to the named pipe, use the Security
+# Descriptor Definition Language (SDDL) to define the permission. This option cannot be used with
+# `http.user`.
+#http.named_pipe.security_descriptor:
 
 #============================= Process Security ================================
 
