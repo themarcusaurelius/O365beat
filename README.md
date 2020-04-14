@@ -10,7 +10,7 @@ To use this fileset you need to enable Audit Log Search and register an applicat
 
 Once this application is registered note the Application (client) ID and the Directory (tenant) ID. Then configure the authentication in the Certificates & Secrets section.
 
-Finally you need to add permissions in the API permissions section and grant it admin consent. Click on Add permission and select Office 365 Management APIs. The needed permissions are:
+Finally, you need to add permissions in the API permissions section and grant it admin consent. Click on Add permission and select Office 365 Management APIs. The needed permissions are:
 
 - User.Read
 - ActivityFeed.Read
