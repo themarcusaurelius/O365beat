@@ -24,11 +24,11 @@ Finally, you need to add permissions in the API permissions section and grant it
 
 Once the required permissions are added, click the <i>Grant admin</i> consent button. Note that it can take a while for the required permissions to be in effect, so it’s possible that you observe some permission errors when running Filebeat right away.
 
-<b>*** Required Credentials You Must Have From O365 ***</b>
+<b>*** Required Credentials You Must Have From O365 To Use This Beat ***</b>
 
  - Tenant Domain
  - Client Secret
- - Client ID
- - Directory ID
+ - Client ID aka application id (GUID)
+ - Directory ID aka tenant id (GUID)
 
 
