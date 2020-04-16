@@ -5,7 +5,7 @@
 o365beat:
   ## period defines how often API is polled for new content blobs
   ## 5 min default, as new content (probably) isn't published too often
-  period: 1m
+  period: 2m
 
   # api_timeout Defines how long the beat will wait for responses from the API
   # 30 second default; extend this for busy tenants
@@ -87,7 +87,7 @@ processors:
 setup.kibana:
   host: ""
   username: ""
-  password: 
+  password: ""
 
 
 #================================ Outputs =====================================

@@ -112,16 +112,16 @@ if($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) 
     #Opens up YML file and inserts Kibana URL
     (Get-Content o365beat.yml) |
         ForEach-Object {$_ -Replace 'host: ""', "host: ""$($objTextBox.Text)"""} |
-            Set-Content filebeat.yml
-
-    #Opens Up YML and sets Password
-    (Get-Content o365beat.yml) |       
-        ForEach-Object {$_ -Replace 'password: ""', "password: ""$($objTextBox3.Text)""" } |
             Set-Content o365beat.yml
 
     #Opens Up YML and sets Username
     (Get-Content o365beat.yml) |       
         ForEach-Object {$_ -Replace 'username: ""', "username: ""$($objTextBox2.Text)""" } |
+            Set-Content o365beat.yml
+
+    #Opens Up YML and sets Password
+    (Get-Content o365beat.yml) |       
+        ForEach-Object {$_ -Replace 'password: ""', "password: ""$($objTextBox3.Text)""" } |
             Set-Content o365beat.yml
 
     #Opens up YML o365 and inserts Elasticsearch API Endpoint
@@ -184,7 +184,7 @@ if($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) 
     $objTextBox = New-Object System.Windows.Forms.TextBox 
     $objTextBox.Location = New-Object System.Drawing.Size(10,60) 
     $objTextBox.Size = New-Object System.Drawing.Size(260,20) 
-    $objForm.Controls.Add($objTextBox5) 
+    $objForm.Controls.Add($objTextBox) 
 
     #============ Second Input =======#
     $objLabel2 = New-Object System.Windows.Forms.Label
@@ -196,7 +196,7 @@ if($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) 
     $objTextBox2 = New-Object System.Windows.Forms.TextBox 
     $objTextBox2.Location = New-Object System.Drawing.Size(10,120) 
     $objTextBox2.Size = New-Object System.Drawing.Size(260,20) 
-    $objForm.Controls.Add($objTextBox6)
+    $objForm.Controls.Add($objTextBox2)
 
     # #============ Third Input =======#
     $objLabel3 = New-Object System.Windows.Forms.Label
@@ -208,7 +208,7 @@ if($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) 
     $objTextBox3 = New-Object System.Windows.Forms.TextBox 
     $objTextBox3.Location = New-Object System.Drawing.Size(10,180) 
     $objTextBox3.Size = New-Object System.Drawing.Size(260,20) 
-    $objForm.Controls.Add($objTextBox7)
+    $objForm.Controls.Add($objTextBox3)
 
     #============ Fourth Input =======#
     $objLabel4 = New-Object System.Windows.Forms.Label
@@ -220,7 +220,7 @@ if($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) 
     $objTextBox4 = New-Object System.Windows.Forms.TextBox 
     $objTextBox4.Location = New-Object System.Drawing.Size(10,240) 
     $objTextBox4.Size = New-Object System.Drawing.Size(260,20) 
-    $objForm.Controls.Add($objTextBox8)
+    $objForm.Controls.Add($objTextBox4)
 
     $objForm.Topmost = $True
 
@@ -229,22 +229,22 @@ if($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) 
 
     #Opens up YML file and inserts Kibana URL
     (Get-Content o365beat.yml) |
-        ForEach-Object {$_ -Replace 'O365BEAT_TENANT_DOMAIN:', "O365BEAT_TENANT_DOMAIN:""$($objTextBox5.Text)"""} |
-            Set-Content filebeat.yml
+        ForEach-Object {$_ -Replace 'O365BEAT_TENANT_DOMAIN:', "O365BEAT_TENANT_DOMAIN:$($objTextBox.Text)"} |
+            Set-Content o365beat.yml
 
     #Opens Up YML and sets Password
     (Get-Content o365beat.yml) |       
-        ForEach-Object {$_ -Replace 'O365BEAT_CLIENT_SECRET:', "O365BEAT_CLIENT_SECRET:""$($objTextBox6.Text)""" } |
+        ForEach-Object {$_ -Replace 'O365BEAT_CLIENT_SECRET:', "O365BEAT_CLIENT_SECRET:$($objTextBox2.Text)" } |
             Set-Content o365beat.yml
 
     #Opens Up YML and sets Username
     (Get-Content o365beat.yml) |       
-        ForEach-Object {$_ -Replace 'O365BEAT_CLIENT_ID:', "O365BEAT_CLIENT_ID:""$($objTextBox7.Text)""" } |
+        ForEach-Object {$_ -Replace 'O365BEAT_CLIENT_ID:', "O365BEAT_CLIENT_ID:$($objTextBox3.Text)" } |
             Set-Content o365beat.yml
 
     #Opens up YML o365 and inserts Elasticsearch API Endpoint
     (Get-Content o365beat.yml) |
-        ForEach-Object {$_ -Replace 'O365BEAT_DIRECTORY_ID:', "O365BEAT_DIRECTORY_ID:""$($objTextBox8.Text)"""} |
+        ForEach-Object {$_ -Replace 'O365BEAT_DIRECTORY_ID:', "O365BEAT_DIRECTORY_ID:$($objTextBox4.Text)"} |
             Set-Content o365beat.yml
 
     "`nO365 Credentials Added"
